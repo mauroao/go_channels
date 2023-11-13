@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"time"
 )
 
 func main() {
@@ -14,14 +15,18 @@ func main() {
 		"https://golang.org",
 	}
 
-	c := make(chan string)
+	channel := make(chan string)
 
 	for _, site := range sites {
-		go checkSite(site, c)
+		go checkSite(site, channel)
 	}
 
-	for i := 0; i < len(sites); i++ {
-		fmt.Println(<-c)
+	for site := range channel {
+		go func(_site string) {
+			time.Sleep(5 * time.Second)
+			checkSite(_site, channel)
+
+		}(site)
 	}
 }
 
@@ -29,9 +34,8 @@ func checkSite(site string, c chan string) {
 	_, err := http.Get(site)
 	if err != nil {
 		fmt.Println(site, "is unrecheable! ", err)
-		c <- "unrecheable! "
-		return
+	} else {
+		fmt.Println(site, "is ok! ")
 	}
-	fmt.Println(site, "is OK!")
-	c <- "OK!"
+	c <- site
 }
